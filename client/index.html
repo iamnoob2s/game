@@ -22,6 +22,7 @@ canvas { display: block; }
 .stat-label { font-size: 11px; color: #aaa; display: flex; justify-content: space-between; }
 #gold-display { color: #ffd700; font-weight: bold; margin-top: 5px; }
 #wave-display { color: #ff8800; font-size: 12px; }
+#mode-display { color: #88ccff; font-size: 11px; margin-top: 2px; }
 
 #weapon-bar { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); display: flex; gap: 5px; background: rgba(0,0,0,0.8); padding: 8px; border-radius: 8px; border: 1px solid #333; }
 .weapon-slot { width: 50px; height: 50px; background: #2a2a3e; border: 2px solid #444; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: all 0.2s; position: relative; }
@@ -31,6 +32,9 @@ canvas { display: block; }
 
 #shop-btn { position: absolute; top: 10px; right: 10px; background: linear-gradient(135deg, #ffd700, #ff8800); color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; }
 #shop-btn:hover { transform: scale(1.05); }
+
+#leave-btn { position: absolute; top: 50px; right: 10px; background: #aa3333; color: #fff; border: none; padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+#leave-btn:hover { background: #cc4444; }
 
 #shop-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10,10,30,0.95); border: 2px solid #ffd700; border-radius: 12px; padding: 20px; width: 700px; max-height: 80vh; overflow-y: auto; display: none; z-index: 100; }
 #shop-panel h2 { color: #ffd700; text-align: center; margin-bottom: 15px; }
@@ -60,12 +64,42 @@ canvas { display: block; }
 .mutation-info h5 { color: #cc88ff; margin-bottom: 3px; }
 .mutation-info p { font-size: 11px; color: #888; }
 
-#connect-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10,10,30,0.95); border: 2px solid #ffd700; border-radius: 12px; padding: 30px; text-align: center; z-index: 200; }
-#connect-screen h1 { color: #ffd700; font-size: 36px; margin-bottom: 10px; }
-#connect-screen p { color: #888; margin-bottom: 20px; }
-#connect-screen input { background: #1a1a3e; border: 1px solid #444; color: #eee; padding: 8px 12px; border-radius: 6px; margin: 5px; width: 200px; }
-#connect-screen button { background: linear-gradient(135deg, #ffd700, #ff8800); color: #000; border: none; padding: 10px 30px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; }
-#connect-screen button:hover { transform: scale(1.05); }
+/* ============ LOBBY SCREEN ============ */
+#lobby-screen { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(10,10,30,0.95); border: 2px solid #ffd700; border-radius: 12px; padding: 30px; text-align: center; z-index: 200; width: 500px; max-height: 90vh; overflow-y: auto; }
+#lobby-screen h1 { color: #ffd700; font-size: 36px; margin-bottom: 5px; }
+#lobby-screen .subtitle { color: #888; margin-bottom: 20px; font-size: 14px; }
+
+.lobby-section { margin: 15px 0; padding: 15px; background: rgba(30,30,60,0.8); border-radius: 8px; border: 1px solid #333; }
+.lobby-section h3 { color: #88ccff; margin-bottom: 10px; font-size: 14px; }
+
+.lobby-input { background: #1a1a3e; border: 1px solid #444; color: #eee; padding: 8px 12px; border-radius: 6px; margin: 5px; width: 200px; }
+.lobby-input:focus { border-color: #ffd700; outline: none; }
+
+.lobby-btn { background: linear-gradient(135deg, #ffd700, #ff8800); color: #000; border: none; padding: 10px 24px; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 14px; margin: 5px; transition: transform 0.1s; }
+.lobby-btn:hover { transform: scale(1.05); }
+.lobby-btn.secondary { background: linear-gradient(135deg, #4488ff, #2266dd); color: #fff; }
+.lobby-btn.danger { background: linear-gradient(135deg, #ff4444, #cc2222); color: #fff; }
+.lobby-btn.success { background: linear-gradient(135deg, #44ff44, #22cc22); color: #000; }
+.lobby-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.party-info { background: #1a1a3e; padding: 10px; border-radius: 6px; margin-top: 10px; text-align: left; }
+.party-code { font-size: 24px; font-family: monospace; color: #ffd700; letter-spacing: 3px; margin: 5px 0; }
+.party-member { padding: 4px 0; font-size: 12px; color: #aaa; }
+.party-member.leader { color: #ffd700; }
+
+.mode-cards { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.mode-card { background: #1a1a3e; border: 2px solid #444; border-radius: 10px; padding: 15px; cursor: pointer; width: 130px; text-align: center; transition: all 0.2s; }
+.mode-card:hover { border-color: #ffd700; transform: translateY(-2px); }
+.mode-card.selected { border-color: #ffd700; background: #2a2a4e; }
+.mode-card .mode-icon { font-size: 28px; margin-bottom: 5px; }
+.mode-card .mode-name { font-size: 13px; font-weight: bold; color: #eee; }
+.mode-card .mode-desc { font-size: 10px; color: #888; margin-top: 3px; }
+
+.public-games-list { max-height: 150px; overflow-y: auto; }
+.public-game-item { display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #1a1a3e; border-radius: 6px; margin-bottom: 5px; }
+.public-game-item .game-info { font-size: 12px; color: #aaa; }
+.public-game-item .game-join-btn { background: #2a5a2a; color: #8f8; border: 1px solid #4a4; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+
 #connect-status { color: #ff4444; margin-top: 10px; font-size: 12px; }
 
 #notifications { position: absolute; top: 60px; right: 10px; display: flex; flex-direction: column; gap: 5px; }
@@ -78,23 +112,80 @@ canvas { display: block; }
 #players-list { position: absolute; top: 10px; left: 200px; background: rgba(0,0,0,0.6); padding: 8px; border-radius: 6px; font-size: 11px; }
 .player-entry { display: flex; align-items: center; gap: 5px; padding: 2px 0; }
 .player-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+#pvp-scoreboard { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 8px; border: 1px solid #ff4444; font-size: 12px; display: none; }
+#pvp-scoreboard h4 { color: #ff4444; margin-bottom: 5px; text-align: center; }
+.pvp-score-entry { display: flex; justify-content: space-between; gap: 20px; }
 </style>
 </head>
 <body>
 <canvas id="game"></canvas>
 
 <div id="ui">
-  <div id="connect-screen">
+  <!-- LOBBY SCREEN -->
+  <div id="lobby-screen">
     <h1>⚔️ BECOME OP ⚔️</h1>
-    <p>A Progressive Weapon Game</p>
-    <input type="text" id="server-input" placeholder="Server (ws://localhost:3000)">
-    <br>
-    <input type="text" id="name-input" placeholder="Your Name" maxlength="20">
-    <br>
-    <button onclick="connectToServer()">PLAY</button>
-    <p id="connect-status"></p>
+    <p class="subtitle">A Progressive Weapon Game</p>
+
+    <!-- Step 1: Connect -->
+    <div id="connect-section" class="lobby-section">
+      <h3>🔌 Connect to Server</h3>
+      <input type="text" id="server-input" class="lobby-input" placeholder="ws://localhost:3000">
+      <br>
+      <input type="text" id="name-input" class="lobby-input" placeholder="Your Name" maxlength="20">
+      <br>
+      <button class="lobby-btn" onclick="connectToServer()">CONNECT</button>
+      <p id="connect-status"></p>
+    </div>
+
+    <!-- Step 2: Party & Mode (hidden until connected) -->
+    <div id="party-section" class="lobby-section" style="display:none">
+      <h3>👥 Party</h3>
+      <div id="party-controls">
+        <button class="lobby-btn secondary" onclick="createParty()">Create Party</button>
+        <br>
+        <input type="text" id="party-code-input" class="lobby-input" placeholder="Enter Party Code" maxlength="6" style="text-transform:uppercase">
+        <button class="lobby-btn secondary" onclick="joinParty()">Join Party</button>
+      </div>
+      <div id="party-info" class="party-info" style="display:none">
+        <div>Party Code: <span class="party-code" id="display-party-code"></span></div>
+        <div id="party-members"></div>
+        <button class="lobby-btn danger" onclick="leaveParty()" style="margin-top:8px;padding:6px 12px;font-size:11px;">Leave Party</button>
+      </div>
+    </div>
+
+    <div id="mode-section" class="lobby-section" style="display:none">
+      <h3>🎮 Game Mode</h3>
+      <div class="mode-cards">
+        <div class="mode-card selected" id="mode-pve" onclick="selectMode('pve')">
+          <div class="mode-icon">🐉</div>
+          <div class="mode-name">PvE</div>
+          <div class="mode-desc">Co-op vs Enemies</div>
+        </div>
+        <div class="mode-card" id="mode-pvp" onclick="selectMode('pvp')">
+          <div class="mode-icon">⚔️</div>
+          <div class="mode-name">PvP</div>
+          <div class="mode-desc">Fight Other Players</div>
+        </div>
+        <div class="mode-card" id="mode-public" onclick="selectMode('public')">
+          <div class="mode-icon">🌐</div>
+          <div class="mode-name">Public</div>
+          <div class="mode-desc">Join Open Game</div>
+        </div>
+      </div>
+      <br>
+      <button class="lobby-btn success" id="start-game-btn" onclick="startGame()">▶ START GAME</button>
+    </div>
+
+    <div id="public-games-section" class="lobby-section" style="display:none">
+      <h3>🌐 Public Games</h3>
+      <div id="public-games-list" class="public-games-list">
+        <p style="color:#666;font-size:12px;">No public games available</p>
+      </div>
+    </div>
   </div>
 
+  <!-- IN-GAME UI -->
   <div id="hud" style="display:none">
     <div id="player-info">
       <h3 id="player-name">Player</h3>
@@ -104,13 +195,16 @@ canvas { display: block; }
       <div class="stat-bar"><div class="stat-bar-fill xp-fill" id="xp-bar"></div></div>
       <div id="gold-display">💰 0</div>
       <div id="wave-display">Wave: 1</div>
+      <div id="mode-display"></div>
       <div style="font-size:11px;color:#888;margin-top:3px;">Level: <span id="level-display">1</span></div>
     </div>
     <div id="players-list"></div>
   </div>
 
+  <div id="pvp-scoreboard"></div>
   <div id="weapon-bar" style="display:none"></div>
   <button id="shop-btn" style="display:none" onclick="toggleShop()">🛒 SHOP (B)</button>
+  <button id="leave-btn" style="display:none" onclick="leaveGame()">← Leave Game</button>
 
   <div id="shop-panel">
     <h2>⚔️ SHOP</h2>
@@ -133,6 +227,7 @@ canvas { display: block; }
 // ============ GAME STATE ============
 let ws = null;
 let myPlayer = null;
+let myPlayerId = null;
 let otherPlayers = Object.create(null);
 let enemies = [];
 let projectiles = [];
@@ -143,11 +238,16 @@ let mutationDefs = {};
 let enemyTypeDefs = [];
 let gameActive = false;
 let currentWave = 1;
+let currentMode = 'pve';
 let shopOpen = false;
 let keys = Object.create(null);
 let mouseX = 0, mouseY = 0;
 let cameraX = 0, cameraY = 0;
 let lastAttackTime = Object.create(null);
+let inGame = false;
+let selectedMode = 'pve';
+let partyCode = null;
+let isPartyLeader = false;
 
 const PLAYER_SPEED = 3;
 const PLAYER_COLORS = ['#ff4444','#44ff44','#4444ff','#ffff44','#ff44ff','#44ffff','#ff8844','#88ff44'];
@@ -194,17 +294,19 @@ function connectToServer() {
   };
 
   ws.onmessage = (event) => {
-    const msg = JSON.parse(event.data);
-    handleMessage(msg);
+    try {
+      const msg = JSON.parse(event.data);
+      handleMessage(msg);
+    } catch(e) {
+      // ignore parse errors
+    }
   };
 
   ws.onclose = () => {
     status.textContent = 'Disconnected. Refresh to reconnect.';
     status.style.color = '#ff4444';
-    document.getElementById('connect-screen').style.display = 'block';
-    document.getElementById('hud').style.display = 'none';
-    document.getElementById('weapon-bar').style.display = 'none';
-    document.getElementById('shop-btn').style.display = 'none';
+    showLobby();
+    inGame = false;
   };
 
   ws.onerror = () => {
@@ -214,25 +316,100 @@ function connectToServer() {
 }
 
 function handleMessage(msg) {
-  // Validate IDs to prevent prototype pollution
   if (msg.id !== undefined && (msg.id === '__proto__' || msg.id === 'constructor' || msg.id === 'prototype')) return;
 
   switch(msg.type) {
-    case 'init':
+    // ---- LOBBY MESSAGES ----
+    case 'lobbyInit':
+      myPlayerId = msg.playerId;
+      document.getElementById('connect-section').style.display = 'none';
+      document.getElementById('party-section').style.display = 'block';
+      document.getElementById('mode-section').style.display = 'block';
+      updatePublicGamesList(msg.publicGames);
+      break;
+
+    case 'nameSet':
+      // Name confirmed
+      break;
+
+    case 'createPartyResult':
+      if (msg.success) {
+        partyCode = msg.code;
+        isPartyLeader = true;
+        showPartyInfo(msg.party);
+        notify('🎉 Party created! Code: ' + msg.code, '#44ff44');
+      } else {
+        notify('❌ ' + msg.reason, '#ff4444');
+      }
+      break;
+
+    case 'joinPartyResult':
+      if (msg.success) {
+        partyCode = msg.code;
+        isPartyLeader = false;
+        showPartyInfo(msg.party);
+        notify('✅ Joined party!', '#44ff44');
+      } else {
+        notify('❌ ' + msg.reason, '#ff4444');
+      }
+      break;
+
+    case 'leavePartyResult':
+      if (msg.success) {
+        partyCode = null;
+        isPartyLeader = false;
+        hidePartyInfo();
+        notify('Left party', '#888');
+      }
+      break;
+
+    case 'partyMemberJoined':
+      notify(`${msg.player.name} joined the party!`, '#44ff44');
+      // Refresh party info
+      if (partyCode) sendMessage({ type: 'joinParty', code: partyCode });
+      break;
+
+    case 'partyMemberLeft':
+      notify('A member left the party', '#ff8888');
+      if (msg.newLeaderId === myPlayerId) {
+        isPartyLeader = true;
+        notify('You are now the party leader!', '#ffd700');
+      }
+      break;
+
+    case 'gameStarted':
+      // Party game started by leader
+      break;
+
+    case 'error':
+      notify('❌ ' + msg.message, '#ff4444');
+      break;
+
+    // ---- GAME MESSAGES ----
+    case 'gameInit':
       myPlayer = msg.player;
       weaponDefs = msg.weapons;
       mutationDefs = msg.mutations;
       enemyTypeDefs = msg.enemyTypes;
       gameActive = msg.gameActive;
       currentWave = msg.wave;
+      currentMode = msg.mode;
       enemies = msg.enemies || [];
+      otherPlayers = Object.create(null);
       msg.otherPlayers.forEach(p => otherPlayers[p.id] = p);
-      document.getElementById('connect-screen').style.display = 'none';
-      document.getElementById('hud').style.display = 'flex';
-      document.getElementById('weapon-bar').style.display = 'flex';
-      document.getElementById('shop-btn').style.display = 'block';
+      inGame = true;
+      showGameUI();
       updateHUD();
       updateWeaponBar();
+      break;
+
+    case 'leftGame':
+      inGame = false;
+      myPlayer = null;
+      enemies = [];
+      projectiles = [];
+      otherPlayers = Object.create(null);
+      showLobby();
       break;
 
     case 'playerJoined':
@@ -265,7 +442,7 @@ function handleMessage(msg) {
 
     case 'playerRenamed':
       if (otherPlayers[msg.id]) otherPlayers[msg.id].name = msg.name;
-      if (msg.id === myPlayer.id) myPlayer.name = msg.name;
+      if (myPlayer && msg.id === myPlayer.id) myPlayer.name = msg.name;
       break;
 
     case 'waveStart':
@@ -285,9 +462,7 @@ function handleMessage(msg) {
 
     case 'enemyDied':
       const deadEnemy = enemies.find(e => e.id === msg.enemyId);
-      if (deadEnemy) {
-        spawnDeathParticles(deadEnemy.x, deadEnemy.y);
-      }
+      if (deadEnemy) spawnDeathParticles(deadEnemy.x, deadEnemy.y);
       enemies = enemies.filter(e => e.id !== msg.enemyId);
       break;
 
@@ -351,10 +526,42 @@ function handleMessage(msg) {
       updateHUD();
       break;
 
+    case 'hpUpdate':
+      myPlayer.hp = msg.hp;
+      updateHUD();
+      break;
+
     case 'playerDied':
       if (otherPlayers[msg.id]) {
         notify(`💀 ${otherPlayers[msg.id].name} died!`, '#ff8888');
       }
+      break;
+
+    // ---- PVP MESSAGES ----
+    case 'pvpHit':
+      if (msg.targetId === myPlayer.id) {
+        myPlayer.hp = msg.targetHp;
+        spawnDamageNumber(myPlayer.x, myPlayer.y, msg.damage);
+        updateHUD();
+      } else if (otherPlayers[msg.targetId]) {
+        spawnDamageNumber(otherPlayers[msg.targetId].x, otherPlayers[msg.targetId].y, msg.damage);
+      }
+      break;
+
+    case 'pvpKill':
+      const killer = msg.killerId === myPlayer.id ? 'You' : (otherPlayers[msg.killerId] ? otherPlayers[msg.killerId].name : 'Someone');
+      const victim = msg.victimId === myPlayer.id ? 'you' : (otherPlayers[msg.victimId] ? otherPlayers[msg.victimId].name : 'someone');
+      notify(`⚔️ ${killer} killed ${victim}!`, '#ff4444');
+      updatePvPScoreboard();
+      break;
+
+    case 'pvpDeath':
+      myPlayer.hp = msg.hp;
+      myPlayer.gold = msg.gold;
+      myPlayer.x = msg.x;
+      myPlayer.y = msg.y;
+      notify('💀 You were killed! Lost 10% gold.', '#ff4444');
+      updateHUD();
       break;
   }
 }
@@ -365,7 +572,114 @@ function sendMessage(msg) {
   }
 }
 
-// ============ UI ============
+// ============ LOBBY UI ============
+function showLobby() {
+  document.getElementById('lobby-screen').style.display = 'block';
+  document.getElementById('hud').style.display = 'none';
+  document.getElementById('weapon-bar').style.display = 'none';
+  document.getElementById('shop-btn').style.display = 'none';
+  document.getElementById('leave-btn').style.display = 'none';
+  document.getElementById('pvp-scoreboard').style.display = 'none';
+}
+
+function showGameUI() {
+  document.getElementById('lobby-screen').style.display = 'none';
+  document.getElementById('hud').style.display = 'flex';
+  document.getElementById('weapon-bar').style.display = 'flex';
+  document.getElementById('shop-btn').style.display = 'block';
+  document.getElementById('leave-btn').style.display = 'block';
+  if (currentMode === 'pvp') {
+    document.getElementById('pvp-scoreboard').style.display = 'block';
+    document.getElementById('wave-display').style.display = 'none';
+  } else {
+    document.getElementById('pvp-scoreboard').style.display = 'none';
+    document.getElementById('wave-display').style.display = 'block';
+  }
+}
+
+function selectMode(mode) {
+  selectedMode = mode;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  document.getElementById('mode-' + mode).classList.add('selected');
+
+  const publicSection = document.getElementById('public-games-section');
+  const startBtn = document.getElementById('start-game-btn');
+
+  if (mode === 'public') {
+    publicSection.style.display = 'block';
+    startBtn.textContent = '▶ JOIN PUBLIC GAME';
+  } else {
+    publicSection.style.display = 'none';
+    startBtn.textContent = '▶ START GAME';
+  }
+}
+
+function createParty() {
+  sendMessage({ type: 'createParty' });
+}
+
+function joinParty() {
+  const code = document.getElementById('party-code-input').value.trim();
+  if (!code) { notify('Enter a party code', '#ff4444'); return; }
+  sendMessage({ type: 'joinParty', code });
+}
+
+function leaveParty() {
+  sendMessage({ type: 'leaveParty' });
+}
+
+function showPartyInfo(party) {
+  document.getElementById('party-controls').style.display = 'none';
+  const infoDiv = document.getElementById('party-info');
+  infoDiv.style.display = 'block';
+  document.getElementById('display-party-code').textContent = party.code;
+
+  let membersHtml = '';
+  party.members.forEach(m => {
+    const isLeader = m.id === party.leaderId;
+    membersHtml += `<div class="party-member ${isLeader ? 'leader' : ''}">${isLeader ? '👑 ' : ''}${escapeHtml(m.name)} (Lv.${m.level})</div>`;
+  });
+  document.getElementById('party-members').innerHTML = membersHtml;
+}
+
+function hidePartyInfo() {
+  document.getElementById('party-controls').style.display = 'block';
+  document.getElementById('party-info').style.display = 'none';
+}
+
+function updatePublicGamesList(games) {
+  const container = document.getElementById('public-games-list');
+  if (!games || games.length === 0) {
+    container.innerHTML = '<p style="color:#666;font-size:12px;">No public games available. Start one!</p>';
+    return;
+  }
+  let html = '';
+  games.forEach(g => {
+    html += `<div class="public-game-item">
+      <span class="game-info">🐉 PvE - Wave ${g.wave} - ${g.players}/${g.maxPlayers} players</span>
+      <button class="game-join-btn" onclick="joinSpecificPublicGame()">Join</button>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function startGame() {
+  if (selectedMode === 'public') {
+    sendMessage({ type: 'joinPublicGame' });
+  } else {
+    sendMessage({ type: 'startGame', mode: selectedMode });
+  }
+}
+
+function joinSpecificPublicGame() {
+  sendMessage({ type: 'joinPublicGame' });
+}
+
+function leaveGame() {
+  sendMessage({ type: 'leaveGame' });
+}
+
+// ============ GAME UI ============
 function updateHUD() {
   if (!myPlayer) return;
   document.getElementById('player-name').textContent = `${myPlayer.name} (Lv.${myPlayer.level})`;
@@ -377,15 +691,29 @@ function updateHUD() {
   document.getElementById('wave-display').textContent = `Wave: ${currentWave}`;
   document.getElementById('level-display').textContent = myPlayer.level;
 
-  // Players list
+  const modeNames = { pve: '🐉 PvE (Co-op)', pvp: '⚔️ PvP (Deathmatch)', public: '🌐 Public PvE' };
+  document.getElementById('mode-display').textContent = modeNames[currentMode] || '';
+
   const list = document.getElementById('players-list');
   let html = '';
-  const allPlayers = [myPlayer, ...Object.values(otherPlayers)];
-  allPlayers.forEach((p) => {
+  const allPlayersArr = [myPlayer, ...Object.values(otherPlayers)];
+  allPlayersArr.forEach((p) => {
     const color = PLAYER_COLORS[p.id % PLAYER_COLORS.length];
     html += `<div class="player-entry"><div class="player-dot" style="background:${color}"></div>${escapeHtml(p.name)} Lv.${p.level}</div>`;
   });
   list.innerHTML = html;
+}
+
+function updatePvPScoreboard() {
+  if (currentMode !== 'pvp') return;
+  const scoreboard = document.getElementById('pvp-scoreboard');
+  let html = '<h4>⚔️ PvP Scoreboard</h4>';
+  const allPlayersArr = [myPlayer, ...Object.values(otherPlayers)];
+  allPlayersArr.sort((a, b) => ((b.stats && b.stats.pvpKills) || 0) - ((a.stats && a.stats.pvpKills) || 0));
+  allPlayersArr.forEach(p => {
+    html += `<div class="pvp-score-entry"><span>${escapeHtml(p.name)}</span><span>${(p.stats && p.stats.pvpKills) || 0} kills</span></div>`;
+  });
+  scoreboard.innerHTML = html;
 }
 
 function updateWeaponBar() {
@@ -460,7 +788,7 @@ function renderWeaponsTab() {
         <strong>${WEAPON_EMOJIS[type] || ''} ${escapeHtml(def.name)}</strong>
         <div style="font-size:11px;color:#888;">DMG:${def.baseDamage} SPD:${def.baseSpeed} CD:${def.baseCooldown}ms AMT:${def.baseAmount}</div>
       </div>
-      ${owned ? '<span style="color:#4f4">✓ Owned</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyWeapon('${escapeHtml(type)}')">Buy ${def.cost}g</button>`}
+      ${owned ? '<span style="color:#4f4">✓ Owned</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyWeapon('${type}')">Buy ${def.cost}g</button>`}
     </div>`;
   });
   container.innerHTML = html;
@@ -478,7 +806,7 @@ function renderMutationsTab() {
         <h5>🧬 ${escapeHtml(def.name)}</h5>
         <p>${escapeHtml(def.description)}</p>
       </div>
-      ${owned ? '<span style="color:#a4a">✓ Applied</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyMutation('${escapeHtml(type)}')">Buy ${def.cost}g</button>`}
+      ${owned ? '<span style="color:#a4a">✓ Applied</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyMutation('${type}')">Buy ${def.cost}g</button>`}
     </div>`;
   });
   container.innerHTML = html;
@@ -508,6 +836,7 @@ function notify(text, color) {
 
 // ============ INPUT ============
 document.addEventListener('keydown', (e) => {
+  if (!inGame) return;
   keys[e.key.toLowerCase()] = true;
   if (e.key >= '1' && e.key <= '9') {
     switchWeapon(parseInt(e.key) - 1);
@@ -523,7 +852,7 @@ canvas.addEventListener('mousemove', (e) => {
 });
 
 canvas.addEventListener('mousedown', () => {
-  if (shopOpen) return;
+  if (!inGame || shopOpen) return;
   attack();
 });
 
@@ -551,7 +880,7 @@ function attack() {
     spawnProjectile(myPlayer.id, myPlayer, weapon, a);
   }
 
-  sendMessage({ type: 'attack', x: myPlayer.x, y: myPlayer.y, angle });
+  sendMessage({ type: 'attack', angle });
 }
 
 // ============ PROJECTILES & PARTICLES ============
@@ -576,7 +905,8 @@ function spawnProjectile(ownerId, owner, weapon, angle) {
     mutations: weapon.mutations || [],
     homing: weapon.mutations && weapon.mutations.includes('homing'),
     piercing: weapon.mutations && weapon.mutations.includes('piercing'),
-    hitEnemies: []
+    hitEnemies: [],
+    hitPlayers: []
   });
 }
 
@@ -601,7 +931,7 @@ function spawnLevelUpParticles() {
 
 // ============ GAME LOOP ============
 function update() {
-  if (!myPlayer) return;
+  if (!myPlayer || !inGame) return;
 
   // Movement
   let dx = 0, dy = 0;
@@ -627,8 +957,8 @@ function update() {
   projectiles = projectiles.filter(p => {
     if (now - p.born > p.lifetime) return false;
 
-    // Homing
-    if (p.homing && enemies.length > 0) {
+    // Homing (only for PvE)
+    if (p.homing && enemies.length > 0 && currentMode !== 'pvp') {
       let nearest = null, nearDist = Infinity;
       enemies.forEach(e => {
         const d = Math.hypot(e.x - p.x, e.y - p.y);
@@ -648,66 +978,64 @@ function update() {
     p.x += p.vx;
     p.y += p.vy;
 
-    // Check collision with enemies (only for own projectiles)
-    if (p.ownerId === myPlayer.id) {
+    // Check collision with enemies (PvE)
+    if (p.ownerId === myPlayer.id && currentMode !== 'pvp') {
       for (let i = enemies.length - 1; i >= 0; i--) {
         const e = enemies[i];
         if (p.hitEnemies.includes(e.id)) continue;
         const dist = Math.hypot(p.x - e.x, p.y - e.y);
         if (dist < (e.size + p.scale * 10)) {
-          let dmg = p.damage;
-          if (p.mutations.includes('critical') && Math.random() < 0.2) dmg *= 3;
-          if (p.mutations.includes('explosive')) dmg *= 1.5;
-
-          sendMessage({ type: 'damageEnemy', enemyId: e.id, damage: Math.floor(dmg) });
+          sendMessage({ type: 'damageEnemy', enemyId: e.id });
           p.hitEnemies.push(e.id);
-
-          if (p.mutations.includes('vampiric')) {
-            myPlayer.hp = Math.min(myPlayer.maxHp, myPlayer.hp + Math.floor(dmg * 0.1));
-          }
-
-          if (p.mutations.includes('chain')) {
-            enemies.forEach(other => {
-              if (other.id !== e.id && Math.hypot(other.x - e.x, other.y - e.y) < 80) {
-                sendMessage({ type: 'damageEnemy', enemyId: other.id, damage: Math.floor(dmg * 0.5) });
-              }
-            });
-          }
 
           if (!p.piercing) return false;
         }
       }
     }
-    return true;
-  });
 
-  // Enemy movement towards nearest player
-  const allPlayerPositions = [myPlayer, ...Object.values(otherPlayers)];
-  enemies.forEach(e => {
-    let nearest = null, nearDist = Infinity;
-    allPlayerPositions.forEach(p => {
-      const d = Math.hypot(p.x - e.x, p.y - e.y);
-      if (d < nearDist) { nearDist = d; nearest = p; }
-    });
-    if (nearest) {
-      const moveAngle = Math.atan2(nearest.y - e.y, nearest.x - e.x);
-      e.x += Math.cos(moveAngle) * e.speed;
-      e.y += Math.sin(moveAngle) * e.speed;
-
-      // Check if enemy hits my player
-      if (nearest.id === myPlayer.id) {
-        const dist = Math.hypot(myPlayer.x - e.x, myPlayer.y - e.y);
-        if (dist < e.size + 15) {
-          if (!e.lastHitTime || now - e.lastHitTime > 1000) {
-            e.lastHitTime = now;
-            myPlayer.hp -= e.damage;
-            sendMessage({ type: 'playerHit', damage: e.damage });
-            updateHUD();
-          }
+    // Check collision with other players (PvP)
+    if (p.ownerId === myPlayer.id && currentMode === 'pvp') {
+      for (const op of Object.values(otherPlayers)) {
+        if (p.hitPlayers.includes(op.id)) continue;
+        const dist = Math.hypot(p.x - op.x, p.y - op.y);
+        if (dist < 25) { // player radius
+          sendMessage({ type: 'pvpAttack', targetId: op.id });
+          p.hitPlayers.push(op.id);
+          if (!p.piercing) return false;
         }
       }
     }
+
+    return true;
   });
+
+  // Enemy movement towards nearest player (PvE only)
+  if (currentMode !== 'pvp') {
+    const allPlayerPositions = [myPlayer, ...Object.values(otherPlayers)];
+    enemies.forEach(e => {
+      let nearest = null, nearDist = Infinity;
+      allPlayerPositions.forEach(p => {
+        const d = Math.hypot(p.x - e.x, p.y - e.y);
+        if (d < nearDist) { nearDist = d; nearest = p; }
+      });
+      if (nearest) {
+        const moveAngle = Math.atan2(nearest.y - e.y, nearest.x - e.x);
+        e.x += Math.cos(moveAngle) * e.speed;
+        e.y += Math.sin(moveAngle) * e.speed;
+
+        // Check if enemy hits my player
+        if (nearest.id === myPlayer.id) {
+          const dist = Math.hypot(myPlayer.x - e.x, myPlayer.y - e.y);
+          if (dist < e.size + 15) {
+            if (!e.lastHitTime || now - e.lastHitTime > 1000) {
+              e.lastHitTime = now;
+              sendMessage({ type: 'playerHit', enemyId: e.id });
+            }
+          }
+        }
+      }
+    });
+  }
 
   // Particles
   particles = particles.filter(p => {
@@ -730,6 +1058,8 @@ function update() {
 function render() {
   ctx.fillStyle = '#1a1a2e';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (!inGame || !myPlayer) return;
 
   const offX = canvas.width/2 - cameraX;
   const offY = canvas.height/2 - cameraY;
@@ -808,14 +1138,30 @@ function render() {
     ctx.beginPath();
     ctx.arc(sx, sy, 15, 0, Math.PI*2);
     ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
+
+    // Red outline in PvP
+    if (currentMode === 'pvp') {
+      ctx.strokeStyle = '#ff4444';
+      ctx.lineWidth = 3;
+    } else {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+    }
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
     ctx.font = '11px sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(p.name, sx, sy - 22);
+
+    // HP bar for PvP
+    if (currentMode === 'pvp' && p.hp !== undefined && p.maxHp) {
+      const hpRatio = p.hp / p.maxHp;
+      ctx.fillStyle = '#333';
+      ctx.fillRect(sx - 20, sy - 30, 40, 4);
+      ctx.fillStyle = `hsl(${hpRatio * 120}, 80%, 50%)`;
+      ctx.fillRect(sx - 20, sy - 30, 40 * hpRatio, 4);
+    }
   });
 
   // My player
@@ -887,6 +1233,7 @@ function renderMinimap() {
   const scale = 0.05;
   const cx = 75, cy = 75;
 
+  // Enemies (red)
   mctx.fillStyle = '#ff4444';
   enemies.forEach(e => {
     const ex = cx + (e.x - (myPlayer ? myPlayer.x : 0)) * scale;
@@ -896,15 +1243,17 @@ function renderMinimap() {
     }
   });
 
+  // Other players
   Object.values(otherPlayers).forEach(p => {
     const px = cx + (p.x - (myPlayer ? myPlayer.x : 0)) * scale;
     const py = cy + (p.y - (myPlayer ? myPlayer.y : 0)) * scale;
-    mctx.fillStyle = PLAYER_COLORS[p.id % PLAYER_COLORS.length];
+    mctx.fillStyle = currentMode === 'pvp' ? '#ff6666' : PLAYER_COLORS[p.id % PLAYER_COLORS.length];
     if (px >= 0 && px <= 150 && py >= 0 && py <= 150) {
       mctx.fillRect(px-2, py-2, 4, 4);
     }
   });
 
+  // Self (white)
   mctx.fillStyle = '#fff';
   mctx.fillRect(cx-2, cy-2, 5, 5);
 }
