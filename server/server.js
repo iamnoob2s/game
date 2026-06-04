@@ -501,6 +501,8 @@ function handlePvPAttack(attacker, targetId) {
   const game = games[attacker.gameId];
   if (!game || game.mode !== 'pvp') return;
 
+  // Validate targetId to prevent prototype pollution
+  if (typeof targetId !== 'number' || !Object.prototype.hasOwnProperty.call(game.players, targetId)) return;
   const target = game.players[targetId];
   if (!target || target.id === attacker.id) return;
 
