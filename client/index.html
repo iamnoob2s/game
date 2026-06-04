@@ -365,7 +365,7 @@ function handleMessage(msg) {
 
     case 'partyMemberJoined':
       notify(`${msg.player.name} joined the party!`, '#44ff44');
-      // Refresh party info
+      // Re-join with same code to fetch updated party member list from server
       if (partyCode) sendMessage({ type: 'joinParty', code: partyCode });
       break;
 
@@ -665,7 +665,7 @@ function updatePublicGamesList(games) {
     item.className = 'public-game-item';
     const info = document.createElement('span');
     info.className = 'game-info';
-    info.textContent = '\u{1F409} PvE - Wave ' + Number(g.wave) + ' - ' + Number(g.players) + '/' + Number(g.maxPlayers) + ' players';
+    info.textContent = '🐉 PvE - Wave ' + Number(g.wave) + ' - ' + Number(g.players) + '/' + Number(g.maxPlayers) + ' players';
     const btn = document.createElement('button');
     btn.className = 'game-join-btn';
     btn.textContent = 'Join';
