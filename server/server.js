@@ -338,7 +338,8 @@ wss.on('connection', (ws) => {
           break;
 
         case 'setName':
-          player.name = (msg.name || '').slice(0, 20) || player.name;
+          const sanitizedName = (msg.name || '').slice(0, 20).replace(/[<>&"'/]/g, '') || player.name;
+          player.name = sanitizedName;
           broadcast({ type: 'playerRenamed', id: player.id, name: player.name });
           break;
 

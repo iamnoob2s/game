@@ -115,9 +115,9 @@ canvas { display: block; }
   <div id="shop-panel">
     <h2>⚔️ SHOP</h2>
     <div class="shop-tabs">
-      <div class="shop-tab active" onclick="switchShopTab('upgrades')">Upgrades</div>
-      <div class="shop-tab" onclick="switchShopTab('weapons')">Weapons</div>
-      <div class="shop-tab" onclick="switchShopTab('mutations')">Mutations</div>
+      <div class="shop-tab active" onclick="switchShopTab('upgrades', event)">Upgrades</div>
+      <div class="shop-tab" onclick="switchShopTab('weapons', event)">Weapons</div>
+      <div class="shop-tab" onclick="switchShopTab('mutations', event)">Mutations</div>
     </div>
     <div id="shop-upgrades" class="shop-section active"></div>
     <div id="shop-weapons" class="shop-section"></div>
@@ -133,7 +133,7 @@ canvas { display: block; }
 // ============ GAME STATE ============
 let ws = null;
 let myPlayer = null;
-let otherPlayers = {};
+let otherPlayers = Object.create(null);
 let enemies = [];
 let projectiles = [];
 let particles = [];
@@ -144,14 +144,20 @@ let enemyTypeDefs = [];
 let gameActive = false;
 let currentWave = 1;
 let shopOpen = false;
-let keys = {};
+let keys = Object.create(null);
 let mouseX = 0, mouseY = 0;
 let cameraX = 0, cameraY = 0;
-let lastAttackTime = {};
+let lastAttackTime = Object.create(null);
 
 const PLAYER_SPEED = 3;
 const PLAYER_COLORS = ['#ff4444','#44ff44','#4444ff','#ffff44','#ff44ff','#44ffff','#ff8844','#88ff44'];
 const WEAPON_EMOJIS = { sword: '⚔️', axe: '🪓', spear: '🔱', boomerang: '🪃', hammer: '🔨', shuriken: '⭐', staff: '🪄', scythe: '🌙' };
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
 
 // ============ CANVAS SETUP ============
 const canvas = document.getElementById('game');
@@ -208,6 +214,9 @@ function connectToServer() {
 }
 
 function handleMessage(msg) {
+  // Validate IDs to prevent prototype pollution
+  if (msg.id !== undefined && (msg.id === '__proto__' || msg.id === 'constructor' || msg.id === 'prototype')) return;
+
   switch(msg.type) {
     case 'init':
       myPlayer = msg.player;
@@ -374,7 +383,7 @@ function updateHUD() {
   const allPlayers = [myPlayer, ...Object.values(otherPlayers)];
   allPlayers.forEach((p) => {
     const color = PLAYER_COLORS[p.id % PLAYER_COLORS.length];
-    html += `<div class="player-entry"><div class="player-dot" style="background:${color}"></div>${p.name} Lv.${p.level}</div>`;
+    html += `<div class="player-entry"><div class="player-dot" style="background:${color}"></div>${escapeHtml(p.name)} Lv.${p.level}</div>`;
   });
   list.innerHTML = html;
 }
@@ -405,10 +414,10 @@ function toggleShop() {
   if (shopOpen) renderShop();
 }
 
-function switchShopTab(tab) {
+function switchShopTab(tab, evt) {
   document.querySelectorAll('.shop-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.shop-section').forEach(s => s.classList.remove('active'));
-  event.target.classList.add('active');
+  if (evt && evt.target) evt.target.classList.add('active');
   document.getElementById(`shop-${tab}`).classList.add('active');
 }
 
@@ -423,7 +432,7 @@ function renderUpgradesTab() {
   let html = '';
   myPlayer.weapons.forEach((w, wi) => {
     const def = weaponDefs[w.type];
-    html += `<div class="weapon-card"><h4>${WEAPON_EMOJIS[w.type]} ${def.name}</h4>`;
+    html += `<div class="weapon-card"><h4>${WEAPON_EMOJIS[w.type] || ''} ${escapeHtml(def.name)}</h4>`;
     const stats = ['damage','scale','speed','lifetime','cooldown','amount'];
     stats.forEach(stat => {
       const level = w.upgrades[stat] || 0;
@@ -448,10 +457,10 @@ function renderWeaponsTab() {
     const canAfford = myPlayer.gold >= def.cost;
     html += `<div class="buy-weapon-card ${owned ? 'owned' : ''}">
       <div>
-        <strong>${WEAPON_EMOJIS[type]} ${def.name}</strong>
+        <strong>${WEAPON_EMOJIS[type] || ''} ${escapeHtml(def.name)}</strong>
         <div style="font-size:11px;color:#888;">DMG:${def.baseDamage} SPD:${def.baseSpeed} CD:${def.baseCooldown}ms AMT:${def.baseAmount}</div>
       </div>
-      ${owned ? '<span style="color:#4f4">✓ Owned</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyWeapon('${type}')">Buy ${def.cost}g</button>`}
+      ${owned ? '<span style="color:#4f4">✓ Owned</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyWeapon('${escapeHtml(type)}')">Buy ${def.cost}g</button>`}
     </div>`;
   });
   container.innerHTML = html;
@@ -460,16 +469,16 @@ function renderWeaponsTab() {
 function renderMutationsTab() {
   const container = document.getElementById('shop-mutations');
   const weapon = myPlayer.weapons[myPlayer.activeWeaponIndex];
-  let html = `<p style="font-size:12px;color:#888;margin-bottom:10px;">Mutations for: ${WEAPON_EMOJIS[weapon.type]} ${weaponDefs[weapon.type].name}</p>`;
+  let html = `<p style="font-size:12px;color:#888;margin-bottom:10px;">Mutations for: ${WEAPON_EMOJIS[weapon.type] || ''} ${escapeHtml(weaponDefs[weapon.type].name)}</p>`;
   Object.entries(mutationDefs).forEach(([type, def]) => {
     const owned = weapon.mutations.includes(type);
     const canAfford = myPlayer.gold >= def.cost;
     html += `<div class="mutation-card ${owned ? 'owned' : ''}">
       <div class="mutation-info">
-        <h5>🧬 ${def.name}</h5>
-        <p>${def.description}</p>
+        <h5>🧬 ${escapeHtml(def.name)}</h5>
+        <p>${escapeHtml(def.description)}</p>
       </div>
-      ${owned ? '<span style="color:#a4a">✓ Applied</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyMutation('${type}')">Buy ${def.cost}g</button>`}
+      ${owned ? '<span style="color:#a4a">✓ Applied</span>' : `<button class="buy-btn" ${canAfford ? '' : 'disabled'} onclick="buyMutation('${escapeHtml(type)}')">Buy ${def.cost}g</button>`}
     </div>`;
   });
   container.innerHTML = html;
