@@ -130,7 +130,10 @@ canvas { display: block; }
     <!-- Step 1: Connect -->
     <div id="connect-section" class="lobby-section">
       <h3>🔌 Connect to Server</h3>
-      <input type="text" id="server-input" class="lobby-input" placeholder="wss://your-server.com" style="width: 280px;">
+      <select id="server-input" class="lobby-input" style="width: 280px;">
+        <option value="ws://localhost:3000">Local (ws://localhost:3000)</option>
+        <option value="wss://game-server.iamnoob2s.railway.app">Production (wss://game-server.iamnoob2s.railway.app)</option>
+      </select>
       <br>
       <input type="text" id="name-input" class="lobby-input" placeholder="Your Name" maxlength="20">
       <br>
@@ -285,22 +288,9 @@ let lastPlayerName = '';
 })();
 
 function connectToServer() {
-  const serverInput = document.getElementById('server-input').value.trim();
+  const serverInput = document.getElementById('server-input').value;
   const playerName = document.getElementById('name-input').value.trim() || 'Player';
   const status = document.getElementById('connect-status');
-
-  if (!serverInput) {
-    status.textContent = 'Please enter a server URL (e.g. wss://your-server.com)';
-    status.style.color = '#ff4444';
-    return;
-  }
-
-  // Validate URL format
-  if (!serverInput.startsWith('ws://') && !serverInput.startsWith('wss://')) {
-    status.textContent = 'URL must start with ws:// or wss://';
-    status.style.color = '#ff4444';
-    return;
-  }
 
   const serverUrl = serverInput;
   lastServerUrl = serverUrl;
