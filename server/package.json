@@ -1,0 +1,13 @@
+{
+  "name": "become-op-server",
+  "version": "1.0.0",
+  "description": "Multiplayer backend for Become OP progressive game",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
