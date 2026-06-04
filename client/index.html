@@ -130,7 +130,7 @@ canvas { display: block; }
     <!-- Step 1: Connect -->
     <div id="connect-section" class="lobby-section">
       <h3>🔌 Connect to Server</h3>
-      <input type="text" id="server-input" class="lobby-input" placeholder="ws://localhost:3000">
+      <input type="text" id="server-input" class="lobby-input" placeholder="wss://your-server.com" style="width: 280px;">
       <br>
       <input type="text" id="name-input" class="lobby-input" placeholder="Your Name" maxlength="20">
       <br>
@@ -271,10 +271,44 @@ resize();
 window.addEventListener('resize', resize);
 
 // ============ NETWORKING ============
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+let lastServerUrl = '';
+let lastPlayerName = '';
+
+// Load saved server URL and name from localStorage
+(function loadSavedSettings() {
+  const savedUrl = localStorage.getItem('becomeop_server_url');
+  const savedName = localStorage.getItem('becomeop_player_name');
+  if (savedUrl) document.getElementById('server-input').value = savedUrl;
+  if (savedName) document.getElementById('name-input').value = savedName;
+})();
+
 function connectToServer() {
-  const serverUrl = document.getElementById('server-input').value || 'ws://localhost:3000';
-  const playerName = document.getElementById('name-input').value || 'Player';
+  const serverInput = document.getElementById('server-input').value.trim();
+  const playerName = document.getElementById('name-input').value.trim() || 'Player';
   const status = document.getElementById('connect-status');
+
+  if (!serverInput) {
+    status.textContent = 'Please enter a server URL (e.g. wss://your-server.com)';
+    status.style.color = '#ff4444';
+    return;
+  }
+
+  // Validate URL format
+  if (!serverInput.startsWith('ws://') && !serverInput.startsWith('wss://')) {
+    status.textContent = 'URL must start with ws:// or wss://';
+    status.style.color = '#ff4444';
+    return;
+  }
+
+  const serverUrl = serverInput;
+  lastServerUrl = serverUrl;
+  lastPlayerName = playerName;
+
+  // Save to localStorage
+  localStorage.setItem('becomeop_server_url', serverUrl);
+  localStorage.setItem('becomeop_player_name', playerName);
 
   status.textContent = 'Connecting...';
   status.style.color = '#ffaa00';
@@ -288,6 +322,7 @@ function connectToServer() {
   }
 
   ws.onopen = () => {
+    reconnectAttempts = 0;
     status.textContent = 'Connected!';
     status.style.color = '#44ff44';
     ws.send(JSON.stringify({ type: 'setName', name: playerName }));
@@ -302,11 +337,28 @@ function connectToServer() {
     }
   };
 
-  ws.onclose = () => {
-    status.textContent = 'Disconnected. Refresh to reconnect.';
-    status.style.color = '#ff4444';
+  ws.onclose = (event) => {
+    if (event.code === 1001 && event.reason === 'Server shutting down') {
+      status.textContent = 'Server is restarting. Reconnecting...';
+      status.style.color = '#ffaa00';
+    } else {
+      status.textContent = 'Disconnected.';
+      status.style.color = '#ff4444';
+    }
     showLobby();
     inGame = false;
+
+    // Auto-reconnect
+    if (lastServerUrl && reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), 10000);
+      status.textContent += ` Reconnecting in ${Math.round(delay/1000)}s... (${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`;
+      setTimeout(() => {
+        if (!ws || ws.readyState === WebSocket.CLOSED) {
+          connectToServer();
+        }
+      }, delay);
+    }
   };
 
   ws.onerror = () => {
