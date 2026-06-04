@@ -2,20 +2,37 @@ const WebSocket = require('ws');
 const http = require('http');
 const crypto = require('crypto');
 
+// ============ CONFIGURATION ============
 const PORT = process.env.PORT || 3000;
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(s => s.trim())
+  : ['*'];
 const MAX_MESSAGE_SIZE = 2048; // Max message size in bytes
 const RATE_LIMIT_MESSAGES = 60; // Max messages per second
 const RATE_LIMIT_WINDOW = 1000; // 1 second window
 const WORLD_BOUNDS = { minX: -2000, maxX: 2000, minY: -2000, maxY: 2000 };
 const MAX_MOVE_SPEED = 10; // Max distance per move message
+const SHUTDOWN_TIMEOUT_MS = 10000; // Force shutdown after this delay
+
+function isOriginAllowed(origin) {
+  if (ALLOWED_ORIGINS.includes('*')) return true;
+  return ALLOWED_ORIGINS.includes(origin);
+}
 
 const server = http.createServer((req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  const origin = req.headers.origin;
+
+  if (origin && isOriginAllowed(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Vary', 'Origin');
+  } else if (ALLOWED_ORIGINS.includes('*')) {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+  }
 
   if (req.method === 'OPTIONS') {
-    res.writeHead(200);
+    res.writeHead(204);
     res.end();
     return;
   }
@@ -24,6 +41,7 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({
       status: 'ok',
+      uptime: process.uptime(),
       players: Object.keys(allPlayers).length,
       parties: Object.keys(parties).length,
       publicGames: Object.keys(games).filter(id => games[id].isPublic).length
@@ -31,11 +49,22 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  res.writeHead(404);
-  res.end('Not found');
+  res.writeHead(404, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ error: 'Not found' }));
 });
 
-const wss = new WebSocket.Server({ server, maxPayload: MAX_MESSAGE_SIZE });
+const wss = new WebSocket.Server({
+  server,
+  maxPayload: MAX_MESSAGE_SIZE,
+  verifyClient: (info, cb) => {
+    const origin = info.origin || info.req.headers.origin;
+    if (isOriginAllowed(origin)) {
+      cb(true);
+    } else {
+      cb(false, 403, 'Origin not allowed');
+    }
+  }
+});
 
 // ============ GAME DEFINITIONS ============
 const WEAPONS = {
@@ -881,7 +910,38 @@ wss.on('connection', (ws) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, '0.0.0.0', () => {
   console.log(`Become OP Server running on port ${PORT}`);
-  console.log(`WebSocket endpoint: ws://localhost:${PORT}`);
+  console.log(`WebSocket endpoint: ws://0.0.0.0:${PORT}`);
+  console.log(`Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
+
+// ============ GRACEFUL SHUTDOWN ============
+function gracefulShutdown(signal) {
+  console.log(`\n${signal} received. Shutting down gracefully...`);
+
+  // Notify all connected players
+  Object.values(allPlayers).forEach(player => {
+    send(player.ws, { type: 'serverShutdown', message: 'Server is restarting' });
+    player.ws.close(1001, 'Server shutting down');
+  });
+
+  // Stop accepting new connections
+  wss.close(() => {
+    console.log('WebSocket server closed');
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
+  });
+
+  // Force shutdown after 10 seconds
+  setTimeout(() => {
+    console.error('Forced shutdown after timeout');
+    process.exit(1);
+  }, SHUTDOWN_TIMEOUT_MS);
+}
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
