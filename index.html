@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OP Arena</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #161f3a;
+      --text: #e9efff;
+      --accent: #6ea8ff;
+      --mut: #f7c14a;
+      --danger: #ff6b6b;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 20%, #141d38 0%, var(--bg) 55%);
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(240px, 300px) 1fr;
+      gap: 12px;
+      padding: 12px;
+    }
+    #ui {
+      background: color-mix(in srgb, var(--panel), transparent 10%);
+      border: 1px solid #2c3c6e;
+      border-radius: 12px;
+      padding: 12px;
+      overflow: auto;
+      max-height: calc(100vh - 24px);
+    }
+    h1 { margin: 0 0 6px; font-size: 1.2rem; }
+    .small { font-size: 0.86rem; opacity: 0.85; }
+    .stat { margin: 6px 0; font-size: 0.92rem; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+    button {
+      border: 1px solid #3c5394;
+      color: var(--text);
+      background: #223464;
+      padding: 8px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    button:hover { filter: brightness(1.12); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    #weaponButtons button.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent), transparent 70%);
+    }
+    #mutations button { background: #5a461a; border-color: #947730; }
+    #game {
+      width: 100%;
+      height: calc(100vh - 24px);
+      background: #0a1329;
+      border: 1px solid #2c3c6e;
+      border-radius: 12px;
+      display: block;
+    }
+    #mutations {
+      display: none;
+      margin-top: 10px;
+      border-top: 1px dashed #445b96;
+      padding-top: 10px;
+    }
+    .legend { margin-top: 8px; font-size: 0.8rem; opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <aside id="ui">
+    <h1>⚔️ OP Arena</h1>
+    <div class="small">Progressive weapon build + optional multiplayer</div>
+
+    <div class="row" id="weaponButtons"></div>
+
+    <div class="stat" id="levelStat"></div>
+    <div class="stat" id="xpStat"></div>
+    <div class="stat" id="goldStat"></div>
+    <div class="stat" id="lifeStat"></div>
+
+    <h3>Upgrades (costs gold)</h3>
+    <div class="row" id="upgradeButtons"></div>
+
+    <div id="mutations">
+      <h3>Mutation choice</h3>
+      <div class="small">Pick one at levels 3, 6, 9...</div>
+      <div class="row" id="mutationButtons"></div>
+    </div>
+
+    <h3>Multiplayer</h3>
+    <div class="small">Backend WebSocket URL</div>
+    <div class="row">
+      <input id="wsUrl" value="ws://localhost:8080" style="width:100%;padding:8px;border-radius:8px;border:1px solid #3c5394;background:#101b3a;color:#fff;" />
+      <button id="connectBtn">Connect</button>
+    </div>
+    <div class="stat" id="netStat">Status: offline</div>
+
+    <div class="legend">Move: WASD / Arrow keys • Shoot: auto-attack • Survive and scale up.</div>
+  </aside>
+
+  <canvas id="game"></canvas>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    function resize() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * devicePixelRatio);
+      canvas.height = Math.floor(rect.height * devicePixelRatio);
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    }
+    addEventListener('resize', resize);
+    resize();
+
+    const player = {
+      x: 300, y: 300, r: 14,
+      hp: 120, maxHp: 120,
+      speed: 170,
+      level: 1,
+      xp: 0,
+      xpToNext: 30,
+      gold: 0,
+      weapon: 'Blaster',
+      stats: {
+        scale: 1,
+        speed: 1,
+        lifetime: 1,
+        cooldown: 1,
+        amount: 1,
+        damage: 1
+      },
+      mutations: new Set()
+    };
+
+    const weapons = {
+      Blaster: { baseDmg: 12, baseSpd: 310, baseLife: 1.0, baseCd: 0.55, bullets: 1, spread: 0.06 },
+      Spread:  { baseDmg: 8,  baseSpd: 280, baseLife: 0.95, baseCd: 0.68, bullets: 3, spread: 0.45 },
+      Sniper:  { baseDmg: 22, baseSpd: 420, baseLife: 1.15, baseCd: 1.0, bullets: 1, spread: 0.01 }
+    };
+
+    const upgradeDefs = [
+      ['scale', '+20% projectile size', 15],
+      ['speed', '+15% projectile speed', 15],
+      ['lifetime', '+20% projectile life', 20],
+      ['cooldown', '-12% cooldown', 20],
+      ['amount', '+1 projectile amount', 25],
+      ['damage', '+18% damage', 20]
+    ];
+
+    const mutationPool = [
+      { key: 'split', text: 'Split Shot: bullets split once on hit' },
+      { key: 'vamp', text: 'Vampiric: heal 1 per hit' },
+      { key: 'haste', text: 'Battle Haste: +20% move speed' },
+      { key: 'echo', text: 'Echo Fire: 15% chance to duplicate volley' }
+    ];
+
+    const keys = new Set();
+    addEventListener('keydown', e => keys.add(e.key.toLowerCase()));
+    addEventListener('keyup', e => keys.delete(e.key.toLowerCase()));
+
+    const bullets = [];
+    const enemies = [];
+    const enemyBullets = [];
+    let shootTimer = 0;
+    let enemyTimer = 0;
+    let tLast = performance.now();
+    let gameOver = false;
+
+    const levelStat = document.getElementById('levelStat');
+    const xpStat = document.getElementById('xpStat');
+    const goldStat = document.getElementById('goldStat');
+    const lifeStat = document.getElementById('lifeStat');
+
+    const weaponButtons = document.getElementById('weaponButtons');
+    Object.keys(weapons).forEach(name => {
+      const b = document.createElement('button');
+      b.textContent = name;
+      b.onclick = () => player.weapon = name;
+      b.dataset.weapon = name;
+      weaponButtons.appendChild(b);
+    });
+
+    const upgradeButtons = document.getElementById('upgradeButtons');
+    const upgradeCost = {};
+    upgradeDefs.forEach(([key, label, cost]) => {
+      upgradeCost[key] = cost;
+      const b = document.createElement('button');
+      b.id = `up_${key}`;
+      b.textContent = `${label} (${cost}g)`;
+      b.onclick = () => {
+        if (player.gold < upgradeCost[key]) return;
+        player.gold -= upgradeCost[key];
+        if (key === 'amount') player.stats.amount += 1;
+        else player.stats[key] *= (key === 'cooldown') ? 0.88 : (key === 'damage' ? 1.18 : (key === 'speed' ? 1.15 : 1.2));
+        upgradeCost[key] = Math.floor(upgradeCost[key] * 1.42);
+        b.textContent = `${label} (${upgradeCost[key]}g)`;
+      };
+      upgradeButtons.appendChild(b);
+    });
+
+    const mutationsEl = document.getElementById('mutations');
+    const mutationButtons = document.getElementById('mutationButtons');
+    function openMutationChoice() {
+      const options = mutationPool.filter(m => !player.mutations.has(m.key)).sort(() => Math.random() - 0.5).slice(0, 2);
+      if (!options.length) return;
+      mutationButtons.innerHTML = '';
+      options.forEach(m => {
+        const b = document.createElement('button');
+        b.textContent = m.text;
+        b.onclick = () => {
+          player.mutations.add(m.key);
+          mutationsEl.style.display = 'none';
+        };
+        mutationButtons.appendChild(b);
+      });
+      mutationsEl.style.display = 'block';
+    }
+
+    function giveXp(v) {
+      player.xp += v;
+      while (player.xp >= player.xpToNext) {
+        player.xp -= player.xpToNext;
+        player.level += 1;
+        player.xpToNext = Math.floor(player.xpToNext * 1.35);
+        player.gold += 20 + player.level * 2;
+        player.maxHp += 6;
+        player.hp = Math.min(player.maxHp, player.hp + 16);
+        if (player.level % 3 === 0) openMutationChoice();
+      }
+    }
+
+    function spawnEnemy() {
+      const w = canvas.width / devicePixelRatio;
+      const h = canvas.height / devicePixelRatio;
+      const edge = Math.floor(Math.random() * 4);
+      let x = 0, y = 0;
+      if (edge === 0) { x = Math.random() * w; y = -20; }
+      if (edge === 1) { x = w + 20; y = Math.random() * h; }
+      if (edge === 2) { x = Math.random() * w; y = h + 20; }
+      if (edge === 3) { x = -20; y = Math.random() * h; }
+      const scale = 1 + player.level * 0.06;
+      enemies.push({ x, y, r: 10 + Math.random() * 9, hp: 18 * scale, speed: 35 + Math.random() * 25 + player.level * 2, reward: 7 + Math.floor(scale * 2) });
+    }
+
+    function nearestEnemy() {
+      let target = null, best = Infinity;
+      for (const e of enemies) {
+        const d = (e.x - player.x) ** 2 + (e.y - player.y) ** 2;
+        if (d < best) { best = d; target = e; }
+      }
+      return target;
+    }
+
+    function fireVolley() {
+      const cfg = weapons[player.weapon];
+      const target = nearestEnemy();
+      if (!target) return;
+      const amount = Math.max(1, Math.floor((cfg.bullets + player.stats.amount - 1) * (player.stats.lifetime / Math.max(0.1, player.stats.cooldown))));
+      const baseAngle = Math.atan2(target.y - player.y, target.x - player.x);
+      const spread = cfg.spread;
+      const count = Math.min(amount, 24);
+      for (let i = 0; i < count; i++) {
+        const t = count === 1 ? 0 : (i / (count - 1) - 0.5);
+        const ang = baseAngle + t * spread;
+        bullets.push({
+          x: player.x, y: player.y,
+          vx: Math.cos(ang) * cfg.baseSpd * player.stats.speed,
+          vy: Math.sin(ang) * cfg.baseSpd * player.stats.speed,
+          life: cfg.baseLife * player.stats.lifetime,
+          r: 3.5 * player.stats.scale,
+          dmg: cfg.baseDmg * player.stats.damage,
+          split: player.mutations.has('split')
+        });
+      }
+      if (player.mutations.has('echo') && Math.random() < 0.15) {
+        setTimeout(() => { if (!gameOver) fireVolley(); }, 80);
+      }
+    }
+
+    function step(dt) {
+      if (gameOver || mutationsEl.style.display === 'block') return;
+
+      const moveBuff = player.mutations.has('haste') ? 1.2 : 1;
+      let dx = 0, dy = 0;
+      if (keys.has('w') || keys.has('arrowup')) dy -= 1;
+      if (keys.has('s') || keys.has('arrowdown')) dy += 1;
+      if (keys.has('a') || keys.has('arrowleft')) dx -= 1;
+      if (keys.has('d') || keys.has('arrowright')) dx += 1;
+      const len = Math.hypot(dx, dy) || 1;
+      player.x += (dx / len) * player.speed * moveBuff * dt;
+      player.y += (dy / len) * player.speed * moveBuff * dt;
+      const w = canvas.width / devicePixelRatio;
+      const h = canvas.height / devicePixelRatio;
+      player.x = Math.max(player.r, Math.min(w - player.r, player.x));
+      player.y = Math.max(player.r, Math.min(h - player.r, player.y));
+
+      shootTimer -= dt;
+      if (shootTimer <= 0) {
+        shootTimer = weapons[player.weapon].baseCd * Math.max(0.06, player.stats.cooldown);
+        fireVolley();
+      }
+
+      enemyTimer -= dt;
+      if (enemyTimer <= 0) {
+        enemyTimer = Math.max(0.18, 1.1 - player.level * 0.03);
+        spawnEnemy();
+      }
+
+      for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.life -= dt;
+        if (b.life <= 0 || b.x < -40 || b.y < -40 || b.x > w + 40 || b.y > h + 40) { bullets.splice(i, 1); continue; }
+
+        for (let j = enemies.length - 1; j >= 0; j--) {
+          const e = enemies[j];
+          if ((b.x - e.x) ** 2 + (b.y - e.y) ** 2 <= (b.r + e.r) ** 2) {
+            e.hp -= b.dmg;
+            if (player.mutations.has('vamp')) player.hp = Math.min(player.maxHp, player.hp + 1);
+            if (b.split) {
+              b.split = false;
+              const ang = Math.atan2(b.vy, b.vx);
+              for (const off of [-0.38, 0.38]) {
+                bullets.push({ x: b.x, y: b.y, vx: Math.cos(ang + off) * Math.hypot(b.vx, b.vy) * 0.9, vy: Math.sin(ang + off) * Math.hypot(b.vx, b.vy) * 0.9, life: b.life * 0.6, r: b.r * 0.8, dmg: b.dmg * 0.55, split: false });
+              }
+            }
+            bullets.splice(i, 1);
+            if (e.hp <= 0) {
+              giveXp(e.reward);
+              player.gold += Math.ceil(e.reward / 2);
+              enemies.splice(j, 1);
+            }
+            break;
+          }
+        }
+      }
+
+      for (const e of enemies) {
+        const ang = Math.atan2(player.y - e.y, player.x - e.x);
+        e.x += Math.cos(ang) * e.speed * dt;
+        e.y += Math.sin(ang) * e.speed * dt;
+        if ((e.x - player.x) ** 2 + (e.y - player.y) ** 2 <= (e.r + player.r) ** 2) {
+          player.hp -= 20 * dt;
+          if (player.hp <= 0) { player.hp = 0; gameOver = true; }
+        }
+      }
+
+      sendState();
+    }
+
+    function draw() {
+      const w = canvas.width / devicePixelRatio;
+      const h = canvas.height / devicePixelRatio;
+      ctx.clearRect(0, 0, w, h);
+
+      for (let gx = 0; gx < w; gx += 40) {
+        ctx.strokeStyle = 'rgba(120,150,220,0.08)';
+        ctx.beginPath();
+        ctx.moveTo(gx, 0);
+        ctx.lineTo(gx, h);
+        ctx.stroke();
+      }
+      for (let gy = 0; gy < h; gy += 40) {
+        ctx.strokeStyle = 'rgba(120,150,220,0.08)';
+        ctx.beginPath();
+        ctx.moveTo(0, gy);
+        ctx.lineTo(w, gy);
+        ctx.stroke();
+      }
+
+      for (const b of bullets) {
+        ctx.fillStyle = '#8ed0ff';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      for (const e of enemies) {
+        ctx.fillStyle = '#ff6363';
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      for (const p of others.values()) {
+        ctx.fillStyle = '#7effa9';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#b8ffc9';
+        ctx.fillText(`Lv${p.level}`, p.x - 10, p.y - 12);
+      }
+
+      ctx.fillStyle = '#6ea8ff';
+      ctx.beginPath();
+      ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      if (gameOver) {
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 36px system-ui';
+        ctx.fillText('Game Over', w / 2 - 95, h / 2 - 10);
+        ctx.font = '18px system-ui';
+        ctx.fillText(`Final Level ${player.level} • Gold ${player.gold}`, w / 2 - 120, h / 2 + 25);
+      }
+
+      levelStat.textContent = `Level: ${player.level} | Weapon: ${player.weapon}`;
+      xpStat.textContent = `XP: ${Math.floor(player.xp)} / ${player.xpToNext}`;
+      goldStat.textContent = `Gold: ${player.gold}`;
+      lifeStat.textContent = `HP: ${Math.floor(player.hp)} / ${player.maxHp}`;
+
+      document.querySelectorAll('#weaponButtons button').forEach(b => b.classList.toggle('active', b.dataset.weapon === player.weapon));
+      requestAnimationFrame(loop);
+    }
+
+    function loop(tNow) {
+      const dt = Math.min(0.033, (tNow - tLast) / 1000);
+      tLast = tNow;
+      step(dt);
+      draw();
+    }
+
+    // Multiplayer
+    const connectBtn = document.getElementById('connectBtn');
+    const wsInput = document.getElementById('wsUrl');
+    const netStat = document.getElementById('netStat');
+    let ws = null;
+    let myId = null;
+    const others = new Map();
+
+    connectBtn.onclick = () => {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close();
+        return;
+      }
+      const url = wsInput.value.trim();
+      try {
+        ws = new WebSocket(url);
+      } catch {
+        netStat.textContent = 'Status: invalid URL';
+        return;
+      }
+      netStat.textContent = 'Status: connecting...';
+      ws.onopen = () => {
+        netStat.textContent = 'Status: online';
+        connectBtn.textContent = 'Disconnect';
+      };
+      ws.onclose = () => {
+        netStat.textContent = 'Status: offline';
+        connectBtn.textContent = 'Connect';
+        myId = null;
+        others.clear();
+      };
+      ws.onerror = () => netStat.textContent = 'Status: connection error';
+      ws.onmessage = ev => {
+        const msg = JSON.parse(ev.data);
+        if (msg.type === 'welcome') myId = msg.id;
+        if (msg.type === 'state' && Array.isArray(msg.players)) {
+          others.clear();
+          for (const p of msg.players) {
+            if (p.id !== myId) others.set(p.id, p);
+          }
+        }
+      };
+    };
+
+    function sendState() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({
+        type: 'state',
+        x: player.x,
+        y: player.y,
+        level: player.level,
+        weapon: player.weapon
+      }));
+    }
+
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
